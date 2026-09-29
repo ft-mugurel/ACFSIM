@@ -1,5 +1,5 @@
 # TODO
 
-- [ ] Steering speed limit
+- [x] Steering speed limit
 - [ ] New track
 - [ ] New car

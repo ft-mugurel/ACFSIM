@@ -7,7 +7,7 @@ import rclpy
 from ackermann_msgs.msg import AckermannDriveStamped
 from rclpy.node import Node
 
-from uvis_ac.drive import pedals, steer_input
+from uvis_ac.drive import approach, pedals, steer_input, steer_rate
 from uvis_ac.pages import physics_from_bytes
 from uvis_ac.paths import bridge_dir
 
@@ -23,6 +23,8 @@ class DriveNode(Node):
         self._path = PREFIX / 'drive.bin'
         self._target_speed = None
         self._steer = 0.0
+        self._applied = 0.0
+        self._applied_at = self.get_clock().now()
         self._last = None
         PREFIX.mkdir(parents=True, exist_ok=True)
         self.create_subscription(
@@ -52,16 +54,23 @@ class DriveNode(Node):
         temporary.write_bytes(payload)
         temporary.replace(self._path)
 
+    def _limited(self, target):
+        now = self.get_clock().now()
+        dt = (now - self._applied_at).nanoseconds * 1e-9
+        self._applied_at = now
+        self._applied = approach(self._applied, target, steer_rate() * max(0.0, dt))
+        return self._applied
+
     def _tick(self):
         if self._target_speed is None or self._last is None:
             return
         age = (self.get_clock().now() - self._last).nanoseconds * 1e-9
         if age > HOLD_S:
-            self._write(0.0, 1.0, 0.0)
+            self._write(0.0, 1.0, self._limited(0.0))
             return
         gain = float(self.get_parameter('speed_gain').value)
         gas, brake = pedals(self._target_speed, self._speed(), gain)
-        self._write(gas, brake, steer_input(self._steer))
+        self._write(gas, brake, self._limited(steer_input(self._steer)))
 
 
 def main():

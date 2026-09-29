@@ -86,6 +86,8 @@ ros2 topic pub -r 10 /motion/drive ackermann_msgs/msg/AckermannDriveStamped \
 
 While the bridge is running, those messages own the pedals. A command older than 0.4 s becomes full brake. Hold the publisher with `-r`. A single `--once` message expires into brake.
 
+The handwheel is limited to 90 RPM, slower than a driver can flick it, because the drive-by-wire actuator cannot move that fast. Lock to lock is 270°, so a full sweep takes 0.5 s.
+
 RViz uses the fixed frame `map`. The first live pose becomes the origin, so the car appears at the centre of the grid instead of at the track's absolute coordinates. Heading is the game's heading and is not zeroed.
 
 ### Troubleshooting
