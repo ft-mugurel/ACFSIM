@@ -76,3 +76,21 @@ Defaults assume a normal per-user Steam install and the FS UK Sprint track. Over
 Game install, Custom Shaders Patch, and the track permission that lets ROS drive the car are in [docs/setup.md](docs/setup.md).
 
 Open tasks are in [TODO.md](TODO.md).
+
+## Same copy in UVIS
+
+Team members get this project inside the UVIS repository at `src/assetto-corsa`. That directory and this repository are one git subtree, so they stay on the same commits.
+
+Edit in one place, then update the other:
+
+```bash
+# UVIS gained bridge changes. Publish them here:
+cd /path/to/uvis
+git subtree push --prefix=src/assetto-corsa git@github.com:ft-mugurel/ACFSIM.git main
+
+# This repository gained commits. Bring them into UVIS:
+cd /path/to/uvis
+git subtree pull --prefix=src/assetto-corsa git@github.com:ft-mugurel/ACFSIM.git main --squash
+```
+
+`--squash` keeps the UVIS history to one merge commit per update. The file tree matches `main` on `ft-mugurel/ACFSIM`. Do not copy the package across by hand.
