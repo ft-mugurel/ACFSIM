@@ -27,13 +27,16 @@ def angular_velocity(local_angular_vel):
 
 
 def world_to_map(car_coordinates):
-    # AC (x right, y up, z forward) -> ROS map (x forward, y left, z up).
-    right, up, forward = car_coordinates
-    return (forward, -right, up)
+    # AC world is Y-up. At heading 0 the nose is +Z, and a positive heading
+    # turns the nose toward -X (a right turn). ROS map X is that nose, and
+    # ROS map Y is left, so AC X is kept rather than mirrored.
+    ac_x, ac_y, ac_z = car_coordinates
+    return (ac_z, ac_x, ac_y)
 
 
 def heading_to_yaw(heading_rad):
-    return heading_rad
+    # Positive game heading is a right turn. Positive ROS yaw is a left turn.
+    return -heading_rad
 
 
 def pose_from_start(x, y, z, yaw, origin):

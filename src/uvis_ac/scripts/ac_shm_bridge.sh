@@ -3,7 +3,15 @@
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 EXE="${AC_SHM_EXE:-${HERE}/../tools/ac_shm_copy.exe}"
-STEAM_HOME="${AC_STEAM_HOME:-${HOME}}"
+if [[ -n "${AC_STEAM_HOME:-}" ]]; then
+  STEAM_HOME="$AC_STEAM_HOME"
+elif [[ -d "${HOME}/.local/share/Steam/steamapps/common/assettocorsa" ]]; then
+  STEAM_HOME="$HOME"
+elif [[ -n "${DISTROBOX_HOST_HOME:-}" && -d "${DISTROBOX_HOST_HOME}/.local/share/Steam/steamapps/common/assettocorsa" ]]; then
+  STEAM_HOME="$DISTROBOX_HOST_HOME"
+else
+  STEAM_HOME="$HOME"
+fi
 APP_ID="${AC_APP_ID:-244210}"
 COMPAT="${STEAM_HOME}/.local/share/Steam/steamapps/compatdata/${APP_ID}"
 PROTON="${AC_PROTON:-${STEAM_HOME}/.local/share/Steam/compatibilitytools.d/GE-Proton9-20/proton}"

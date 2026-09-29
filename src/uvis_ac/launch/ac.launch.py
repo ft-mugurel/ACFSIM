@@ -35,6 +35,12 @@ def generate_launch_description():
             output='screen',
         ),
         Node(
+            package='uvis_perception',
+            executable='cone_visualizer',
+            name='cone_visualizer',
+            output='screen',
+        ),
+        Node(
             package='rviz2',
             executable='rviz2',
             name='ac_rviz',

@@ -4,6 +4,7 @@ import math
 
 import numpy as np
 import rclpy
+from rclpy.duration import Duration
 from geometry_msgs.msg import TransformStamped
 from rclpy.node import Node
 from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
@@ -42,6 +43,7 @@ class LidarNode(Node):
             ))
         broadcaster = StaticTransformBroadcaster(self)
         mount = TransformStamped()
+        mount.header.stamp = self.get_clock().now().to_msg()
         mount.header.frame_id = 'base_footprint'
         mount.child_frame_id = 'velodyne'
         mount.transform.translation.x = LIDAR_FORWARD
@@ -81,9 +83,11 @@ class LidarNode(Node):
             return
         dist = distance[keep]
         dirs = self._dirs[keep]
+        # Pad to 24 bytes. A 22-byte point makes RViz read off the end of the cloud.
         cloud = np.empty(int(keep.sum()), dtype=[
             ('x', np.float32), ('y', np.float32), ('z', np.float32),
-            ('intensity', np.float32), ('time', np.float32), ('ring', np.uint16),
+            ('intensity', np.float32), ('time', np.float32),
+            ('ring', np.uint16), ('_', np.uint16),
         ])
         cloud['x'] = (dirs[:, 0] * dist).astype(np.float32)
         cloud['y'] = (dirs[:, 1] * dist).astype(np.float32)
@@ -92,7 +96,9 @@ class LidarNode(Node):
         cloud['time'] = self._times[keep]
         cloud['ring'] = self._rings[keep]
         header = Header()
-        header.stamp = self.get_clock().now().to_msg()
+        # The map pose is published at 50 Hz. A stamp slightly behind now is
+        # already in that buffer, so RViz can transform the cloud.
+        header.stamp = (self.get_clock().now() - Duration(seconds=0.05)).to_msg()
         header.frame_id = 'velodyne'
         fields = [
             PointField(name='x', offset=0, datatype=PointField.FLOAT32, count=1),
@@ -101,6 +107,7 @@ class LidarNode(Node):
             PointField(name='intensity', offset=12, datatype=PointField.FLOAT32, count=1),
             PointField(name='time', offset=16, datatype=PointField.FLOAT32, count=1),
             PointField(name='ring', offset=20, datatype=PointField.UINT16, count=1),
+            PointField(name='_', offset=22, datatype=PointField.UINT16, count=1),
         ]
         msg = point_cloud2.create_cloud(header, fields, cloud)
         self._pub.publish(msg)
