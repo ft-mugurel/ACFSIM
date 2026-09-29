@@ -83,7 +83,7 @@ The frame here is `base_footprint`: x forward, y left, z up, yaw positive to the
 x = X,  y = -Y,  z = -Z,  yaw = -Yaw
 ```
 
-The default lidar is 1.70 m ahead of the car origin, with 128 beams from −25° to +15° and a full 360° azimuth scan at 0.2°. That scan is about 230,000 rays. The cast runs in C++ and takes about 60 ms, so the 10 Hz timer can keep up. IMU and GPS sit on the car origin. Their readings are still the body sample; the file only places the frames. Pass another file with:
+The default lidar is 1.70 m ahead of the car origin, with 16 beams from −15° to +15° and a 200° forward azimuth scan at 0.2°. The cast runs in C++. IMU and GPS sit on the car origin. Their readings are still the body sample; the file only places the frames. Pass another file with:
 
 ```bash
 ros2 launch uvis_ac ac.launch.py sensors_file:=/path/to/sensors.yaml
@@ -91,7 +91,7 @@ ros2 launch uvis_ac ac.launch.py sensors_file:=/path/to/sensors.yaml
 
 ### Point cloud
 
-`/velodyne_points` is one scan per message. The 128-beam cast takes about 60 ms in C++, so the topic holds 10 Hz. The frame is the lidar `Frame` in `sensors.yaml` (`velodyne` by default). Each point is 24 bytes:
+`/velodyne_points` is one scan per message, about 10 Hz. The frame is the lidar `Frame` in `sensors.yaml` (`velodyne` by default). Each point is 24 bytes:
 
 | Field | Type | Meaning |
 | --- | --- | --- |

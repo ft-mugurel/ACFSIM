@@ -39,9 +39,9 @@ Sensors:
     Roll: 0.0
     Pitch: 0.0
     Yaw: 0.0
-    NumberOfLasers: 128
+    NumberOfLasers: 16
     VerticalFOVUpper: 15.0
-    VerticalFOVLower: -25.0
-    HorizontalFOVStart: -180.0
-    HorizontalFOVEnd: 180.0
+    VerticalFOVLower: -15.0
+    HorizontalFOVStart: -100.0
+    HorizontalFOVEnd: 100.0
     AzimuthStep: 0.2

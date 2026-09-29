@@ -159,6 +159,18 @@ Visualization Manager:
         Value: /planning/centerline/markers
       Value: true
     - Class: rviz_default_plugins/MarkerArray
+      Enabled: false
+      Name: Fasttube
+      Namespaces:
+        fasttube: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /planning/fasttube/markers
+      Value: true
+    - Class: rviz_default_plugins/MarkerArray
       Enabled: true
       Name: Pursuit
       Topic:
