@@ -17,6 +17,7 @@ from uvis_ac.convert import (
 )
 from uvis_ac.pages import graphics_from_bytes, physics_from_bytes
 from uvis_ac.paths import bridge_dir
+from uvis_ac.sensors import load_sensors
 
 PREFIX = bridge_dir()
 ORIGIN_LAT = 49.327
@@ -26,6 +27,11 @@ ORIGIN_LON = 8.565
 class TelemetryNode(Node):
     def __init__(self):
         super().__init__('ac_telemetry')
+        self.declare_parameter('sensors_file', '')
+        sensor_path = self.get_parameter('sensors_file').value
+        sensors = load_sensors(sensor_path or None)
+        self._imu_pose = sensors.imu
+        self._gps_pose = sensors.gps
         self._physics_path = PREFIX / 'physics.bin'
         self._graphics_path = PREFIX / 'graphics.bin'
         self._imu_pub = self.create_publisher(Imu, '/imu', qos_profile_sensor_data)
@@ -40,17 +46,10 @@ class TelemetryNode(Node):
         self._tf = TransformBroadcaster(self)
         static = StaticTransformBroadcaster(self)
         now = self.get_clock().now().to_msg()
-        imu_tf = TransformStamped()
-        imu_tf.header.stamp = now
-        imu_tf.header.frame_id = 'base_footprint'
-        imu_tf.child_frame_id = 'imu_base_link'
-        imu_tf.transform.rotation.w = 1.0
-        gps_tf = TransformStamped()
-        gps_tf.header.stamp = now
-        gps_tf.header.frame_id = 'base_footprint'
-        gps_tf.child_frame_id = 'gps_base_link'
-        gps_tf.transform.rotation.w = 1.0
-        static.sendTransform([imu_tf, gps_tf])
+        static.sendTransform([
+            self._static_tf(now, self._imu_pose),
+            self._static_tf(now, self._gps_pose),
+        ])
         self._static = static
         self._origin = self._read_origin()
         self.create_timer(0.02, self._tick)
@@ -98,6 +97,21 @@ class TelemetryNode(Node):
         temporary.write_bytes(struct.pack('<3f', *origin))
         temporary.replace(path)
 
+    def _static_tf(self, stamp, pose):
+        transform = TransformStamped()
+        transform.header.stamp = stamp
+        transform.header.frame_id = 'base_footprint'
+        transform.child_frame_id = pose.frame
+        transform.transform.translation.x = pose.x
+        transform.transform.translation.y = pose.y
+        transform.transform.translation.z = pose.z
+        qx, qy, qz, qw = pose.quaternion()
+        transform.transform.rotation.x = qx
+        transform.transform.rotation.y = qy
+        transform.transform.rotation.z = qz
+        transform.transform.rotation.w = qw
+        return transform
+
     def _publish_tf(self, stamp, x, y, z, yaw):
         transform = TransformStamped()
         transform.header.stamp = stamp
@@ -115,7 +129,7 @@ class TelemetryNode(Node):
         wx, wy, wz = angular_velocity(physics.local_angular_vel)
         msg = Imu()
         msg.header.stamp = stamp
-        msg.header.frame_id = 'imu_base_link'
+        msg.header.frame_id = self._imu_pose.frame
         msg.linear_acceleration.x = ax + random.gauss(0.0, 0.02)
         msg.linear_acceleration.y = ay + random.gauss(0.0, 0.02)
         msg.linear_acceleration.z = az + random.gauss(0.0, 0.02)
@@ -143,7 +157,7 @@ class TelemetryNode(Node):
         self._gps_pose_pub.publish(pose)
         msg = NavSatFix()
         msg.header.stamp = stamp
-        msg.header.frame_id = 'gps_base_link'
+        msg.header.frame_id = self._gps_pose.frame
         msg.status.status = NavSatStatus.STATUS_FIX
         msg.status.service = NavSatStatus.SERVICE_GPS
         msg.latitude = ORIGIN_LAT + north / 111320.0

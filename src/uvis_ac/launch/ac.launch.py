@@ -4,14 +4,21 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import ExecuteProcess, SetEnvironmentVariable
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, SetEnvironmentVariable
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
 def generate_launch_description():
     ac_share = get_package_share_directory('uvis_ac')
     bridge = os.path.join(ac_share, 'scripts', 'ac_shm_bridge.sh')
+    sensors = LaunchConfiguration('sensors_file')
     return LaunchDescription([
+        DeclareLaunchArgument(
+            'sensors_file',
+            default_value=os.path.join(ac_share, 'config', 'sensors.yaml'),
+            description='Car sensor poses, in the FSDS settings.json style',
+        ),
         SetEnvironmentVariable('QT_QPA_PLATFORM', 'xcb'),
         SetEnvironmentVariable('ROS_AUTOMATIC_DISCOVERY_RANGE', 'LOCALHOST'),
         SetEnvironmentVariable('ROS_LOCALHOST_ONLY', '1'),
@@ -21,12 +28,14 @@ def generate_launch_description():
             executable='ac_telemetry',
             name='ac_telemetry',
             output='screen',
+            parameters=[{'sensors_file': sensors}],
         ),
         Node(
             package='uvis_ac',
             executable='ac_lidar',
             name='ac_lidar',
             output='screen',
+            parameters=[{'sensors_file': sensors}],
         ),
         Node(
             package='uvis_ac',

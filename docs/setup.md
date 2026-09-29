@@ -44,7 +44,7 @@ content/tracks/fs_uk_sprint/fs_uk_sprint.kn5
 
 Point `AC_TRACK_KN5` at another track when you use one. The KN5 parser keeps cone meshes and wall, barrier, and fence meshes. Banners and signs do not stop the rays.
 
-The VLP-16 is modelled 1.70 m ahead of the game's car origin, with 16 beams from −15° to +15° and a 200° forward azimuth scan.
+Sensor mounts are in `src/uvis_ac/config/sensors.yaml`. The default lidar is 1.70 m ahead of the car origin, with 128 beams from −25° to +15° and a 360° azimuth scan at 0.2°.
 
 ## 4. ROS workspace
 

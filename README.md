@@ -8,9 +8,11 @@ The game runs on Linux through Proton. A small Windows program inside the Proton
 
 | Topic | Type | Meaning |
 | --- | --- | --- |
-| `/velodyne_points` | `sensor_msgs/PointCloud2` | Synthetic VLP-16, frame `velodyne`, reliable QoS |
+| `/velodyne_points` | `sensor_msgs/PointCloud2` | Synthetic lidar scan. Reliable QoS. See [Point cloud](#point-cloud) |
 | `/imu` | `sensor_msgs/Imu` | Specific force and angular velocity from the game, 50 Hz |
+| `/imu/accel` | `geometry_msgs/AccelStamped` | Same sample, for the RViz acceleration arrow |
 | `/gps` | `sensor_msgs/NavSatFix` | Noisy fix from the car position |
+| `/gps/pose` | `geometry_msgs/PoseStamped` | That fix drawn in the `map` frame |
 | `/tf` | `map` → `base_footprint` | Car pose. The first live position is the map origin |
 | `/motion/drive` | `ackermann_msgs/AckermannDriveStamped` | Subscribe. `speed` is m/s, `steering_angle` is radians, positive left |
 
@@ -71,7 +73,36 @@ content/tracks/fs_uk_sprint/fs_uk_sprint.kn5
 
 Point `AC_TRACK_KN5` at another track when you use one. The KN5 parser keeps cone meshes and wall, barrier, and fence meshes. Banners and signs do not stop the rays.
 
-The VLP-16 is modelled 1.70 m ahead of the game's car origin, with 16 beams from −15° to +15° and a 200° forward azimuth scan.
+### Sensors
+
+Sensor positions live in [`src/uvis_ac/config/sensors.yaml`](src/uvis_ac/config/sensors.yaml). It does the same job as the `Sensors` block in an FSDS `settings.json`: each entry has `X`, `Y`, `Z`, `Roll`, `Pitch`, and `Yaw`, and the lidar entry also has the beam count and the field of view.
+
+The frame here is `base_footprint`: x forward, y left, z up, yaw positive to the left. FSDS writes NED on the car (X forward, Y right, Z down). Copy a pose across with:
+
+```text
+x = X,  y = -Y,  z = -Z,  yaw = -Yaw
+```
+
+The default lidar is 1.70 m ahead of the car origin, with 128 beams from −25° to +15° and a full 360° azimuth scan at 0.2°. That scan is about 230,000 rays. The cast runs in C++ and takes about 60 ms, so the 10 Hz timer can keep up. IMU and GPS sit on the car origin. Their readings are still the body sample; the file only places the frames. Pass another file with:
+
+```bash
+ros2 launch uvis_ac ac.launch.py sensors_file:=/path/to/sensors.yaml
+```
+
+### Point cloud
+
+`/velodyne_points` is one scan per message. The 128-beam cast takes about 60 ms in C++, so the topic holds 10 Hz. The frame is the lidar `Frame` in `sensors.yaml` (`velodyne` by default). Each point is 24 bytes:
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `x`, `y`, `z` | float32 | Metres in the lidar frame. x is forward, y is left, z is up |
+| `intensity` | float32 | 1 for a hit |
+| `time` | float32 | Microseconds from the start of the scan |
+| `ring` | uint16 | Laser index, 0 at the lowest beam |
+
+The publisher is reliable, and the RViz lidar display is set the same way. A 22-byte point makes that display drop the cloud, so the message is padded to 24 bytes. Rays are cast through the track KN5. Cone meshes and wall, barrier, and fence meshes stop them. Banners and signs do not.
+
+The map pose is stamped about 50 ms ahead of the cloud, so RViz can transform `velodyne` into `map`. Heading 0 in the game is forward on that map. A right turn in the game is a right turn in RViz. The first live position is saved as the origin and reused on the next launch.
 
 ### Driving from ROS
 
@@ -88,7 +119,7 @@ While the bridge is running, those messages own the pedals. A command older than
 
 The handwheel is limited to 90 RPM, slower than a driver can flick it, because the drive-by-wire actuator cannot move that fast. Lock to lock is 270°, so a full sweep takes 0.5 s.
 
-RViz uses the fixed frame `map`. The first live pose becomes the origin, so the car appears at the centre of the grid instead of at the track's absolute coordinates. Heading is the game's heading and is not zeroed.
+RViz uses the fixed frame `map`. The **Lidar** display is `/velodyne_points`, **Imu** is the `/imu/accel` arrow, and **GPS** is the `/gps/pose` arrow.
 
 ### Troubleshooting
 
@@ -143,9 +174,16 @@ Defaults assume a normal per-user Steam install and the FS UK Sprint track. Over
 | `AC_BRIDGE_DIR` | the Proton prefix `drive_c/uvis` for that app id |
 | `AC_TRACK_KN5` | `content/tracks/fs_uk_sprint/fs_uk_sprint.kn5` |
 
+## TODO
+
+- [x] Steering speed limit
+- [ ] New track
+- [ ] New car
+- [ ] Camera support
+
 ## More detail
 
-The same setup is also written out in [docs/setup.md](docs/setup.md). Open tasks are in [TODO.md](TODO.md).
+The same setup is also written out in [docs/setup.md](docs/setup.md). The task list above is also in [TODO.md](TODO.md).
 
 ## Same copy in UVIS
 

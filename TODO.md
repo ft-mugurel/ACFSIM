@@ -3,3 +3,4 @@
 - [x] Steering speed limit
 - [ ] New track
 - [ ] New car
+- [ ] Camera support

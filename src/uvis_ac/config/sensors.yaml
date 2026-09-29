@@ -1,0 +1,47 @@
+# Sensor poses on the car, in the same role as FSDS settings.json.
+#
+# This file uses the ROS base_footprint frame: x forward, y left, z up.
+# Angles are degrees. Yaw is positive to the left.
+#
+# FSDS settings.json is NED on the car (X forward, Y right, Z down).
+# Copy a sensor across with:
+#   x = X,  y = -Y,  z = -Z,  yaw = -Yaw
+#
+# One lidar is simulated. The first enabled lidar entry is the one that
+# publishes /velodyne_points. IMU and GPS readings stay the car-body
+# sample; these poses only place their frames.
+
+Sensors:
+  Imu:
+    Enabled: true
+    Frame: imu_base_link
+    X: 0.0
+    Y: 0.0
+    Z: 0.0
+    Roll: 0.0
+    Pitch: 0.0
+    Yaw: 0.0
+  Gps:
+    Enabled: true
+    Frame: gps_base_link
+    X: 0.0
+    Y: 0.0
+    Z: 0.0
+    Roll: 0.0
+    Pitch: 0.0
+    Yaw: 0.0
+  Lidar:
+    Enabled: true
+    Frame: velodyne
+    X: 1.70
+    Y: 0.0
+    Z: 0.0
+    Roll: 0.0
+    Pitch: 0.0
+    Yaw: 0.0
+    NumberOfLasers: 128
+    VerticalFOVUpper: 15.0
+    VerticalFOVLower: -25.0
+    HorizontalFOVStart: -180.0
+    HorizontalFOVEnd: 180.0
+    AzimuthStep: 0.2
