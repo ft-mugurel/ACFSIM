@@ -146,7 +146,7 @@ Visualization Manager:
       Value: true
     - Class: rviz_default_plugins/MarkerArray
       Enabled: true
-      Name: PerceptionCones
+      Name: Colored cones
       Namespaces:
         uvis_cone_ids: true
         uvis_cones: true

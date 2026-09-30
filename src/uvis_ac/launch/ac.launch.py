@@ -53,6 +53,10 @@ def generate_launch_description():
             package='uvis_perception',
             executable='cone_visualizer',
             name='cone_visualizer',
+            parameters=[{
+                'cones_topic': '/perception/cones_colored',
+                'markers_topic': '/perception/cones/markers',
+            }],
             output='screen',
         ),
         Node(
