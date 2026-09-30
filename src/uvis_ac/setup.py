@@ -43,6 +43,7 @@ setup(
             'ac_telemetry = uvis_ac.telemetry_node:main',
             'ac_lidar = uvis_ac.lidar_node:main',
             'ac_drive = uvis_ac.drive_node:main',
+            'ac_camera = uvis_ac.camera_node:main',
         ],
     },
     maintainer='UVIS',

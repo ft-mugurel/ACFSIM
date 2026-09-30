@@ -44,6 +44,12 @@ def generate_launch_description():
             output='screen',
         ),
         Node(
+            package='uvis_ac',
+            executable='ac_camera',
+            name='ac_camera',
+            output='screen',
+        ),
+        Node(
             package='uvis_perception',
             executable='cone_visualizer',
             name='cone_visualizer',
