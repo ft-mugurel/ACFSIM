@@ -47,7 +47,7 @@ class LidarNode(Node):
             QoSProfile(
                 reliability=ReliabilityPolicy.RELIABLE,
                 history=HistoryPolicy.KEEP_LAST,
-                depth=5,
+                depth=1,
             ))
         broadcaster = StaticTransformBroadcaster(self)
         mount = TransformStamped()
@@ -108,7 +108,7 @@ class LidarNode(Node):
         header = Header()
         # The map pose is published at 50 Hz. A stamp slightly behind now is
         # already in that buffer, so RViz can transform the cloud.
-        header.stamp = (self.get_clock().now() - Duration(seconds=0.05)).to_msg()
+        header.stamp = (self.get_clock().now() - Duration(seconds=0.02)).to_msg()
         header.frame_id = self._lidar.frame
         fields = [
             PointField(name='x', offset=0, datatype=PointField.FLOAT32, count=1),
