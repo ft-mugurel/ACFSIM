@@ -51,7 +51,12 @@ static void write_controls(void) {
     CloseHandle(file);
     memcpy(controls_view + 0, &pedal[0], 4);
     memcpy(controls_view + 4, &pedal[1], 4);
-    *(float *)(controls_view + 8) = 1.0f; /* clutch engaged */
+    /* 1 connects the clutch. Leaving it connected at idle lets the idle
+     * throttle creep the car, so connect it only while the throttle is open. */
+    {
+        float clutch = pedal[0] > 0.02f ? 1.0f : 0.0f;
+        memcpy(controls_view + 8, &clutch, 4);
+    }
     memcpy(controls_view + 12, &pedal[2], 4);
     controls_view[68] = 1; /* autoshift */
 }

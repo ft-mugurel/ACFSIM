@@ -41,7 +41,9 @@ function script.update(dt)
   if gas > 0.05 and car.gear <= 1 then
     car.requestedGearIndex = 1
   end
-  car.clutch = 1.0
+  -- 1 connects the clutch. An open throttle is what connects it. At idle
+  -- the clutch stays open so the car can come to a stop.
+  car.clutch = gas > 0.05 and 1.0 or 0.0
   car.gas = gas
   car.brake = brake
   car.steer = steer
