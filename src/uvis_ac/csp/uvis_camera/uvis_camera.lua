@@ -1,46 +1,91 @@
 -- Writes the live camera pose only. A second scene render was measured at
 -- 332 ms per frame, which dropped the game to about 3 fps and left the
--- picture behind the sim. The image is grabbed from the game window outside
--- Assetto Corsa.
+-- picture behind the sim. The image is the virtual screen the game is on.
+-- Assetto Corsa itself is not shown.
 -- While the session is live:
 --   C:\uvis\camera.txt  frame, vertical FOV in degrees, position, forward, up
 -- Position and directions are Assetto Corsa world axes: x right, y up, z forward.
+--
+-- The picture is the car's bonnet camera. Its position stays the one in
+-- the car data. Grabbing the camera to set the field of view parks the
+-- view off the car, so this script only selects that bonnet camera.
 
 local sim = ac.getSim()
+
+local function useHoodCamera()
+  if sim.cameraMode == ac.CameraMode.Drivable
+      and sim.driveableCameraMode == ac.DrivableCamera.Bonnet then
+    return
+  end
+  ac.setCurrentCamera(ac.CameraMode.Drivable)
+  ac.setCurrentDrivableCamera(ac.DrivableCamera.Bonnet)
+end
 local wait = 0.0
 local frame = 0
-local respawnWait = 0.0
-local respawnSeen = nil
+local commandWait = 0.0
+local autoWait = 0.0
+local autoLeft = 20
+local beenLive = false
+local seen = {}
 
-local function readRespawn()
-  local file = io.open('C:\\uvis\\respawn', 'r')
-  if not file then
+local commands = {
+  { file = 'C:\\uvis\\respawn', run = function() ac.resetCar() end },
+  { file = 'C:\\uvis\\start_session', run = function() ac.tryToStart(true) end },
+  { file = 'C:\\uvis\\restart_session', run = function() ac.tryToRestartSession() end },
+}
+
+local function readLine(path)
+  -- Same file API as the camera.txt write. io.open did not pick up a new
+  -- Start token while this app was already running.
+  local text = io.load(path, '')
+  if not text or text == '' then
     return ''
   end
-  local token = file:read('*l') or ''
-  file:close()
-  return token
+  return text:match('^([^\r\n]*)') or ''
 end
 
-local function pollRespawn(dt)
-  respawnWait = respawnWait + dt
-  if respawnWait < 0.2 then
+local function pollCommands(dt)
+  commandWait = commandWait + dt
+  if commandWait < 0.2 then
     return
   end
-  respawnWait = 0.0
-  local token = readRespawn()
-  if respawnSeen == nil then
-    respawnSeen = token
+  commandWait = 0.0
+  for _, command in ipairs(commands) do
+    local token = readLine(command.file)
+    if seen[command.file] == nil then
+      seen[command.file] = token
+    elseif token ~= '' and token ~= seen[command.file] then
+      seen[command.file] = token
+      command.run()
+    end
+  end
+end
+
+-- The game is on a screen nobody is looking at. sim.isLive and
+-- sim.isSessionStarted are both already true in the pits menu, before
+-- the car accepts controls. Press Start a few times, then stop. A later
+-- pause or a second press from here can begin a new session. The panel
+-- button still can.
+local function autoStart(dt)
+  if beenLive or autoLeft <= 0 or not sim.isLive then
     return
   end
-  if token ~= '' and token ~= respawnSeen then
-    respawnSeen = token
-    ac.resetCar()
+  autoWait = autoWait + dt
+  if autoWait < 1.0 then
+    return
+  end
+  autoWait = 0.0
+  autoLeft = autoLeft - 1
+  if ac.tryToStart(true) then
+    beenLive = true
+    autoLeft = 0
   end
 end
 
 function script.update(dt)
-  pollRespawn(dt)
+  pollCommands(dt)
+  autoStart(dt)
+  useHoodCamera()
   wait = wait + dt
   if not sim.isLive or wait < (1 / 30) then
     return

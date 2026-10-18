@@ -1,8 +1,9 @@
-"""Publish the Assetto Corsa window.
+"""Publish the Assetto Corsa view.
 
-The in-game render was measured at 332 ms per frame. Grabbing the window
-that is already on screen takes about 20 ms and shows the same picture as
-the sim.
+The in-game render was measured at 332 ms per frame. Grabbing the virtual
+screen the game is on takes about 20 ms and shows the same picture. The
+panel writes that output name in ``capture_output.txt``. One line is one
+view. Only the first line is published for now.
 """
 
 import json
@@ -79,13 +80,31 @@ def _pose_numbers():
         return None
 
 
-def _grab_window(rect):
+def _capture_output():
+    """First view in capture_output.txt. Later lines would be more cameras."""
+    path = bridge_dir() / 'capture_output.txt'
     try:
-        raw = subprocess.check_output(
-            _host('grim') + ['-g', rect, '-t', 'ppm', '-'], timeout=0.4)
+        lines = [line.strip() for line in path.read_text(errors='ignore').splitlines()]
+    except OSError:
+        return None
+    lines = [line for line in lines if line and not line.startswith('#')]
+    return lines[0] if lines else None
+
+
+def _grab(args):
+    try:
+        done = subprocess.run(
+            _host('grim') + args + ['-t', 'ppm', '-'],
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            timeout=0.6,
+        )
     except (subprocess.SubprocessError, OSError):
         return None
-    return _ppm_bgr(raw)
+    if done.returncode != 0:
+        return None
+    return _ppm_bgr(done.stdout)
 
 
 class CameraNode(Node):
@@ -102,19 +121,24 @@ class CameraNode(Node):
         self._pub = self.create_publisher(Image, '/camera/image', shown)
         self._pose_pub = self.create_publisher(Float64MultiArray, '/camera/pose', shown)
         self.create_timer(1.0 / 20.0, self._tick)
-        self.get_logger().info('Grabbing the Assetto Corsa window')
+        self.get_logger().info('Grabbing the Assetto Corsa virtual screen')
 
     def _tick(self):
         now = time.monotonic()
-        if self._rect is None or now - self._rect_at > 0.5:
-            self._rect = _game_rect()
-            self._rect_at = now
+        output = _capture_output()
         # Pose first, then the pixels, so both belong to this grab.
         pose = _pose_numbers()
-        frame = _grab_window(self._rect) if self._rect else None
+        if output:
+            frame = _grab(['-o', output])
+        else:
+            if self._rect is None or now - self._rect_at > 0.5:
+                self._rect = _game_rect()
+                self._rect_at = now
+            frame = _grab(['-g', self._rect]) if self._rect else None
         if frame is None:
             if not self._missing:
-                self.get_logger().warning('Assetto Corsa window is not on screen')
+                where = output or 'the Assetto Corsa window'
+                self.get_logger().warning('No picture from %s' % where)
                 self._missing = True
             return
         self._missing = False
