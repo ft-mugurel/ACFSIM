@@ -70,8 +70,23 @@ def _matrix(f):
     return [list(vals[i * 4:(i + 1) * 4]) for i in range(4)]
 
 
+def _cone_dict(arr):
+    height = float(arr[:, 1].max() - arr[:, 1].min())
+    radius = float(max(arr[:, 0].max() - arr[:, 0].min(), arr[:, 2].max() - arr[:, 2].min()) * 0.5)
+    if len(arr) < 6 or height < 0.15 or height > 0.9 or radius < 0.04 or radius > 0.4:
+        return None
+    return {
+        'xy': (float(arr[:, 0].mean()), float(arr[:, 2].mean())),
+        'z0': float(arr[:, 1].min()),
+        'height': height,
+        'radius': max(0.08, radius),
+    }
+
+
 def _clusters(xs, ys, zs):
     """One cylinder per cone. A mesh may contain many cones."""
+    # int() truncates toward 0. A cone sitting on a 0.45 m line is split
+    # across two cells; a mesh that is already one cone does not use this.
     cell = 0.45
     buckets = {}
     for x, y, z in zip(xs, ys, zs):
@@ -79,19 +94,9 @@ def _clusters(xs, ys, zs):
         buckets.setdefault(key, []).append((x, y, z))
     cones = []
     for points in buckets.values():
-        if len(points) < 6:
-            continue
-        arr = np.asarray(points)
-        height = float(arr[:, 1].max() - arr[:, 1].min())
-        radius = float(max(arr[:, 0].max() - arr[:, 0].min(), arr[:, 2].max() - arr[:, 2].min()) * 0.5)
-        if height < 0.15 or height > 0.9 or radius < 0.04 or radius > 0.4:
-            continue
-        cones.append({
-            'xy': (float(arr[:, 0].mean()), float(arr[:, 2].mean())),
-            'z0': float(arr[:, 1].min()),
-            'height': height,
-            'radius': max(0.08, radius),
-        })
+        found = _cone_dict(np.asarray(points))
+        if found is not None:
+            cones.append(found)
     return cones
 
 
@@ -135,14 +140,22 @@ def cone_cylinders(path, name_hint='cone'):
                 mat_name = materials[mat] if 0 <= mat < len(materials) else ''
                 lname = name.lower()
                 keep = hint in lname or hint in mat_name
-                solid = lname.startswith('wall') or 'barrier' in lname or 'fence' in lname
+                # 1WALL_Cube does not start with "wall", but it is a barrier.
+                solid = 'wall' in lname or 'barrier' in lname or 'fence' in lname
                 if keep or solid:
                     pts = np.empty((vcount, 3), dtype=np.float64)
                     for vi in range(vcount):
                         x, y, z = struct.unpack_from('<3f', raw, vi * 44)
                         pts[vi] = _transform(parent, x, y, z)
                     if keep:
-                        cones.extend(_clusters(pts[:, 0], pts[:, 1], pts[:, 2]))
+                        # One cylinder per mesh when the mesh itself is cone-sized.
+                        # The grid below is for the tracks that pack every cone
+                        # of one color into a single mesh.
+                        one = _cone_dict(pts)
+                        if one is not None:
+                            cones.append(one)
+                        else:
+                            cones.extend(_clusters(pts[:, 0], pts[:, 1], pts[:, 2]))
                     if solid and icount >= 3:
                         idx = np.frombuffer(index_bytes, dtype='<u2').reshape(-1, 3)
                         # Flat frame: x, forward z, up y.

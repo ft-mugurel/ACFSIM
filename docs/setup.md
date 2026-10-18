@@ -36,13 +36,9 @@ Stock shared memory is read-only, so pedals cannot be written there.
 
 ## 3. Car and track
 
-Put the car under `assettocorsa/content/cars/` and the track under `assettocorsa/content/tracks/`. The lidar raycasts the track KN5. By default that file is:
+Put the car under `assettocorsa/content/cars/` and the track under `assettocorsa/content/tracks/`. The lidar raycasts the KN5 files of the track selected in the game (`race.ini`, including the layout). Restart the AC bridge after changing track; the model is read once at startup. Set `AC_TRACK_KN5` to force a single file. With no `race.ini` the fallback is `content/tracks/fs_uk_sprint/fs_uk_sprint.kn5`.
 
-```text
-content/tracks/fs_uk_sprint/fs_uk_sprint.kn5
-```
-
-Point `AC_TRACK_KN5` at another track when you use one. The KN5 parser keeps cone meshes and wall, barrier, and fence meshes. Banners and signs do not stop the rays.
+The KN5 parser keeps cone meshes and meshes whose names contain wall, barrier, or fence. Banners and signs do not stop the rays.
 
 Sensor mounts are in `src/uvis_ac/config/sensors.yaml`. The default lidar is a 16-beam unit 1.70 m ahead of the car origin, beams from −15° to +15°, with a 200° forward azimuth scan.
 
@@ -62,7 +58,7 @@ Start the session in the game, then:
 ros2 launch uvis_ac ac.launch.py
 ```
 
-RViz uses the fixed frame `map`. The first live pose becomes the origin, so the car appears at the centre of the grid instead of at the track's absolute coordinates. Heading is the game's heading and is not zeroed.
+RViz uses the fixed frame `map`. The first live pose on each track becomes the origin, so the car appears at the centre of the grid instead of at the track's absolute coordinates. A different track zeroes again. Heading is the game's heading and is not zeroed. Restart the bridge after changing track.
 
 `ros2 run uvis_ac ac_watch` prints speed and position while you check the bridge.
 

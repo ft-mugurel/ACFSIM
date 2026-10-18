@@ -13,11 +13,11 @@ from tf2_ros import StaticTransformBroadcaster
 
 from uvis_ac.kn5_cones import cone_cylinders
 from uvis_ac.pages import graphics_from_bytes, physics_from_bytes
-from uvis_ac.paths import bridge_dir, track_kn5
+from uvis_ac.paths import bridge_dir, track_kn5_files
 from uvis_ac.sensors import directions_in_world, load_sensors, mount_in_world
 from uvis_ac.vlp16 import grid_walls, ranges_to_cones, rays
 
-TRACK = track_kn5()
+TRACKS = track_kn5_files()
 BRIDGE = bridge_dir()
 
 
@@ -31,8 +31,18 @@ class LidarNode(Node):
             'Lidar %s at (%.2f, %.2f, %.2f) from %s'
             % (self._lidar.name, self._lidar.x, self._lidar.y, self._lidar.z,
                path or 'sensors.yaml'))
-        self.get_logger().info('Reading cones from %s' % TRACK.name)
-        cones, walls = cone_cylinders(TRACK)
+        self.get_logger().info(
+            'Reading cones from %s' % ', '.join(str(path) for path in TRACKS))
+        cones = []
+        wall_parts = []
+        for path in TRACKS:
+            found, walls = cone_cylinders(path)
+            cones.extend(found)
+            if len(walls):
+                wall_parts.append(walls)
+        walls = (
+            np.concatenate(wall_parts)
+            if wall_parts else np.zeros((0, 3, 3), np.float32))
         self._cones = cones
         self._walls = grid_walls(walls)
         rays_list = list(rays(
@@ -106,8 +116,10 @@ class LidarNode(Node):
         cloud['time'] = self._times[keep]
         cloud['ring'] = self._rings[keep]
         header = Header()
-        # The map pose is published at 50 Hz. A stamp slightly behind now is
-        # already in that buffer, so RViz can transform the cloud.
+        # The rays are one snapshot and every point time is 0. Telemetry
+        # stamps the pose at 50 Hz, so the header is one tick behind now and
+        # that transform is already buffered. A 100 ms header drew the cones
+        # on the pose from the previous scan.
         header.stamp = (self.get_clock().now() - Duration(seconds=0.02)).to_msg()
         header.frame_id = self._lidar.frame
         fields = [

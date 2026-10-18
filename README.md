@@ -65,13 +65,9 @@ Stock shared memory is read-only, so pedals cannot be written there.
 
 ### Car and track
 
-Put the car under `assettocorsa/content/cars/` and the track under `assettocorsa/content/tracks/`. The lidar raycasts the track KN5. By default that file is:
+Put the car under `assettocorsa/content/cars/` and the track under `assettocorsa/content/tracks/`. The lidar raycasts the KN5 files of the track selected in the game (`race.ini`, including the layout). Restart the bridge after changing track; the model is read once at startup. Set `AC_TRACK_KN5` to force a single file. With no `race.ini` the fallback is `content/tracks/fs_uk_sprint/fs_uk_sprint.kn5`.
 
-```text
-content/tracks/fs_uk_sprint/fs_uk_sprint.kn5
-```
-
-Point `AC_TRACK_KN5` at another track when you use one. The KN5 parser keeps cone meshes and wall, barrier, and fence meshes. Banners and signs do not stop the rays.
+The KN5 parser keeps cone meshes and meshes whose names contain wall, barrier, or fence. Banners and signs do not stop the rays.
 
 ### Sensors
 
@@ -100,9 +96,9 @@ ros2 launch uvis_ac ac.launch.py sensors_file:=/path/to/sensors.yaml
 | `time` | float32 | Microseconds from the start of the scan |
 | `ring` | uint16 | Laser index, 0 at the lowest beam |
 
-The publisher is reliable, and the RViz lidar display is set the same way. A 22-byte point makes that display drop the cloud, so the message is padded to 24 bytes. Rays are cast through the track KN5. Cone meshes and wall, barrier, and fence meshes stop them. Banners and signs do not.
+The publisher is reliable, and the RViz lidar display is set the same way. A 22-byte point makes that display drop the cloud, so the message is padded to 24 bytes. Rays are cast through the session track's KN5 files. Cone meshes and meshes named as walls, barriers, or fences stop them. Banners and signs do not.
 
-The map pose is stamped about 50 ms ahead of the cloud, so RViz can transform `velodyne` into `map`. Heading 0 in the game is forward on that map. A right turn in the game is a right turn in RViz. The first live position is saved as the origin and reused on the next launch.
+The map pose is stamped about 50 ms ahead of the cloud, so RViz can transform `velodyne` into `map`. Heading 0 in the game is forward on that map. A right turn in the game is a right turn in RViz. The first live position on a track is saved as the origin and reused while that track is selected. Changing track zeroes the grid again. Restart the bridge after a track change.
 
 ### Driving from ROS
 
@@ -172,7 +168,7 @@ Defaults assume a normal per-user Steam install and the FS UK Sprint track. Over
 | `AC_APP_ID` | `244210` |
 | `AC_PROTON` | `$AC_STEAM_HOME/.local/share/Steam/compatibilitytools.d/GE-Proton9-20/proton` |
 | `AC_BRIDGE_DIR` | the Proton prefix `drive_c/uvis` for that app id |
-| `AC_TRACK_KN5` | `content/tracks/fs_uk_sprint/fs_uk_sprint.kn5` |
+| `AC_TRACK_KN5` | unset: the track in `race.ini`. Fallback `content/tracks/fs_uk_sprint/fs_uk_sprint.kn5` |
 
 ## TODO
 

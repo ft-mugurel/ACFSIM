@@ -14,13 +14,19 @@ ELEVATIONS_DEG = tuple(-15.0 + 2.0 * i for i in range(16))
 AZIMUTH_MIN_DEG = -100.0
 AZIMUTH_MAX_DEG = 100.0
 AZIMUTH_STEP_DEG = 0.2
-SCAN_US = 100_000.0
+SCAN_US = 0.0
 
 
 def rays(lasers=16, fov_upper=15.0, fov_lower=-15.0,
          azimuth_start=AZIMUTH_MIN_DEG, azimuth_end=AZIMUTH_MAX_DEG,
          azimuth_step=AZIMUTH_STEP_DEG):
-    """Yield (direction xyz, ring, time_us) across one forward scan."""
+    """Yield (direction xyz, ring, time_us) across one forward scan.
+
+    Every return shares one time. The rays are one snapshot, so that time is
+    0 and the cloud header is the capture. Spreading the time across the
+    azimuth deskews a scan that never spun, so a body estimate falls behind
+    the car.
+    """
     if lasers < 1:
         raise ValueError('a lidar needs at least one laser')
     if lasers == 1:
@@ -31,8 +37,7 @@ def rays(lasers=16, fov_upper=15.0, fov_lower=-15.0,
     count = int(round((azimuth_end - azimuth_start) / azimuth_step))
     for step in range(count + 1):
         azimuth = math.radians(azimuth_start + step * azimuth_step)
-        # Later azimuths are later in the spin.
-        time_us = (step / count) * SCAN_US
+        time_us = SCAN_US
         ca, sa = math.cos(azimuth), math.sin(azimuth)
         for ring, elevation_deg in enumerate(elevations):
             elevation = math.radians(elevation_deg)
