@@ -1,4 +1,4 @@
-"""Assetto Corsa bridge, telemetry, lidar, drive, and RViz. No autonomy nodes."""
+"""Assetto Corsa bridge, telemetry, lidar, drive, motion pose, and RViz."""
 
 import os
 
@@ -47,6 +47,12 @@ def generate_launch_description():
             package='uvis_ac',
             executable='ac_camera',
             name='ac_camera',
+            output='screen',
+        ),
+        Node(
+            package='uvis_odometry',
+            executable='motion_pose',
+            name='motion_pose',
             output='screen',
         ),
         Node(
